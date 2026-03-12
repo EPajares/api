@@ -6,10 +6,11 @@ const _ = require('lodash');
  * 1) Expands common German street-type abbreviations to their full form so that
  *    queries like "Herrenstr. 29" match index entries stored as "Herrenstraße 29".
  *
- * 2) Strips parenthetical disambiguation suffixes from city names, e.g.
- *    "Rheinfelden (Baden)" → "Rheinfelden", "Singen (Hohentwiel)" → "Singen".
- *    German official names often include these, but OSM/WOF data stores only
- *    the base city name.
+ * 2) Restores parenthetical disambiguation in city names when libpostal has
+ *    flattened them.  E.g. the user writes "Rheinfelden (Baden)" but libpostal
+ *    parses city as "rheinfelden baden".  The WOF/OSM index stores the name
+ *    *with* parentheses ("Rheinfelden (Baden)"), so we reconstruct the original
+ *    form so that ES can match it properly.
  *
  * Runs on `clean.parsed_text` — designed to be inserted as middleware
  * after libpostal (and after defer_to_pelias_parser) in the search pipeline.
@@ -46,17 +47,26 @@ function normalizeStreet(street) {
   return result;
 }
 
-// Strip parenthetical disambiguation suffix from German city names.
-// German official city names often include a geographic disambiguator in
-// parentheses, e.g. "Rheinfelden (Baden)", "Singen (Hohentwiel)".
-// libpostal may strip the parens but keep the suffix: "rheinfelden baden".
-// The OSM/WOF index only stores the base name ("Rheinfelden"), so we must
-// strip the suffix to get a match.
+// Restore parenthetical disambiguation in city names.
 //
-// Strategy: look at the raw query text for parenthetical content.  If the
-// parsed city ends with the same word(s) that appeared in parentheses,
-// remove them.
-const PAREN_SUFFIX = /\s*\(.*\)\s*$/;
+// German official city names include a geographic disambiguator in parentheses:
+//   "Rheinfelden (Baden)", "Singen (Hohentwiel)", "Frankfurt (Oder)"
+//
+// The WOF/OSM index stores these *with* parentheses, e.g.
+//   parent.locality = "Rheinfelden (Baden)"
+//
+// But libpostal strips the parens and flattens to "rheinfelden baden".
+// ES then tokenises "rheinfelden" and "baden" separately, often matching the
+// wrong city (e.g. the city "Baden" a.k.a. Baden-Baden).
+//
+// Fix: detect parenthetical content in the raw query text, and if libpostal
+// produced a flattened version, restore the parentheses so ES can match the
+// indexed form.
+//
+// Example:
+//   raw text:  "Kapuzinerstr. 4, Rheinfelden (Baden), 79618"
+//   libpostal: city = "rheinfelden baden"
+//   restored:  city = "rheinfelden (baden)"
 const PAREN_CONTENT = /\(([^)]+)\)/g;
 
 function normalizeCity(city, rawText) {
@@ -64,25 +74,30 @@ function normalizeCity(city, rawText) {
     return city;
   }
 
-  // Case 1: parens still present (rare, but handle it)
-  if (PAREN_SUFFIX.test(city)) {
-    return city.replace(PAREN_SUFFIX, '').trim();
+  // If the city already contains parens, leave it alone.
+  if (city.includes('(')) {
+    return city;
   }
 
-  // Case 2: libpostal already stripped parens → detect from raw query text
-  if (_.isString(rawText) && rawText.includes('(')) {
-    const matches = rawText.match(PAREN_CONTENT);
-    if (matches) {
-      let result = city;
-      for (const m of matches) {
-        // m is like "(Baden)" — extract inner text
-        const inner = m.slice(1, -1).trim().toLowerCase();
-        if (inner && result.toLowerCase().endsWith(inner)) {
-          result = result.slice(0, result.length - inner.length).trim();
-        }
-      }
-      if (result.length > 0 && result !== city) {
-        return result;
+  // Only act when the raw query text contained parentheses (meaning the user
+  // deliberately included a disambiguator that libpostal then flattened).
+  if (!_.isString(rawText) || !rawText.includes('(')) {
+    return city;
+  }
+
+  const matches = rawText.match(PAREN_CONTENT);
+  if (!matches) {
+    return city;
+  }
+
+  for (const m of matches) {
+    const inner = m.slice(1, -1).trim();
+    // Check if the flattened city ends with the inner text (case-insensitive).
+    if (inner && city.toLowerCase().endsWith(inner.toLowerCase())) {
+      const base = city.slice(0, city.length - inner.length).trim();
+      if (base.length > 0) {
+        // Restore the parenthetical form: "rheinfelden (baden)"
+        return base + ' (' + inner.toLowerCase() + ')';
       }
     }
   }

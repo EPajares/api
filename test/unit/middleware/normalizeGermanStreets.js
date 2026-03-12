@@ -63,24 +63,32 @@ module.exports.tests.normalizeStreet_unit = function(test, common) {
 module.exports.tests.normalizeCity_unit = function(test, common) {
   var fn = normalizeGermanStreets.normalizeCity;
 
-  test('strips parenthetical suffix from city (parens still present)', function(t) {
-    t.equal(fn('Rheinfelden (Baden)', ''), 'Rheinfelden');
-    t.equal(fn('Singen (Hohentwiel)', ''), 'Singen');
-    t.equal(fn('Ellwangen (Jagst)', ''), 'Ellwangen');
-    t.equal(fn('Laufenburg (Baden)', ''), 'Laufenburg');
-    t.end();
-  });
-
-  test('strips suffix when libpostal already removed parens', function(t) {
+  test('restores parens when libpostal flattened them', function(t) {
     // libpostal gives "rheinfelden baden" from "Rheinfelden (Baden)"
-    t.equal(fn('rheinfelden baden', 'Kapuzinerstr. 4, Rheinfelden (Baden), 79618'), 'rheinfelden');
-    t.equal(fn('singen hohentwiel', 'Hauptstr. 3, Singen (Hohentwiel), 78224'), 'singen');
-    t.equal(fn('feldberg schwarzwald', 'Falkauerstr. 1, Feldberg (Schwarzwald), 79868'), 'feldberg');
+    t.equal(
+      fn('rheinfelden baden',
+        'Kapuzinerstr. 4, Rheinfelden (Baden), 79618'),
+      'rheinfelden (baden)');
+    t.equal(
+      fn('singen hohentwiel',
+        'Hauptstr. 3, Singen (Hohentwiel), 78224'),
+      'singen (hohentwiel)');
+    t.equal(
+      fn('feldberg schwarzwald',
+        'Falkauerstr. 1, Feldberg (Schwarzwald), 79868'),
+      'feldberg (schwarzwald)');
     t.end();
   });
 
-  test('leaves city without parens unchanged', function(t) {
-    t.equal(fn('Stuttgart', 'Hauptstr. 1, Stuttgart, 70173'), 'Stuttgart');
+  test('leaves city alone when it already has parens', function(t) {
+    t.equal(
+      fn('Rheinfelden (Baden)', 'anything'), 'Rheinfelden (Baden)');
+    t.end();
+  });
+
+  test('leaves city alone when no parens in raw text', function(t) {
+    t.equal(fn('Stuttgart', 'Hauptstr. 1, Stuttgart, 70173'),
+      'Stuttgart');
     t.equal(fn('Mannheim', ''), 'Mannheim');
     t.end();
   });
@@ -131,25 +139,33 @@ module.exports.tests.middleware_integration = function(test, common) {
     });
   });
 
-  test('strips parenthetical suffix from city field', function(t) {
+  test('restores parens in city field', function(t) {
     var mw = normalizeGermanStreets();
     var req = {
       clean: {
         text: 'Kapuzinerstr. 4, Rheinfelden (Baden), 79618',
-        parsed_text: { city: 'rheinfelden baden', street: 'kapuzinerstraße' }
+        parsed_text: {
+          city: 'rheinfelden baden',
+          street: 'kapuzinerstraße'
+        }
       }
     };
     mw(req, {}, function() {
-      t.equal(req.clean.parsed_text.city, 'rheinfelden');
+      t.equal(req.clean.parsed_text.city, 'rheinfelden (baden)');
       t.end();
     });
   });
 
-  test('strips parens from city when present', function(t) {
+  test('leaves city alone when it already has parens', function(t) {
     var mw = normalizeGermanStreets();
-    var req = { clean: { text: 'test', parsed_text: { city: 'Rheinfelden (Baden)' } } };
+    var req = {
+      clean: {
+        text: 'test',
+        parsed_text: { city: 'Rheinfelden (Baden)' }
+      }
+    };
     mw(req, {}, function() {
-      t.equal(req.clean.parsed_text.city, 'Rheinfelden');
+      t.equal(req.clean.parsed_text.city, 'Rheinfelden (Baden)');
       t.end();
     });
   });
@@ -159,12 +175,15 @@ module.exports.tests.middleware_integration = function(test, common) {
     var req = {
       clean: {
         text: 'Hauptstr. 3, Singen (Hohentwiel), 78224',
-        parsed_text: { street: 'Hauptstr.', city: 'singen hohentwiel' }
+        parsed_text: {
+          street: 'Hauptstr.',
+          city: 'singen hohentwiel'
+        }
       }
     };
     mw(req, {}, function() {
       t.equal(req.clean.parsed_text.street, 'Hauptstraße');
-      t.equal(req.clean.parsed_text.city, 'singen');
+      t.equal(req.clean.parsed_text.city, 'singen (hohentwiel)');
       t.end();
     });
   });
