@@ -59,6 +59,7 @@ var tests = [
   require('./middleware/sendJSON'),
   require('./middleware/mapFields'),
   require('./middleware/normalizeParentIds'),
+  require('./middleware/normalizeGermanStreets'),
   require('./middleware/sizeCalculator'),
   require('./middleware/sortResponseData'),
   require('./middleware/trimByGranularity'),

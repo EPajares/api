@@ -216,12 +216,14 @@ function addRoutes(app, peliasConfig) {
       middleware.requestLanguage,
       middleware.sizeCalculator(),
       controllers.libpostal(libpostalService, libpostalShouldExecute),
+      middleware.normalizeGermanStreets(),
       controllers.placeholder(placeholderService, geometricFiltersApply, placeholderGeodisambiguationShouldExecute),
       controllers.placeholder(placeholderService, geometricFiltersApply, placeholderIdsLookupShouldExecute),
       // try 3 different query types: address search using ids, cascading fallback, pelias parser
       controllers.search(peliasConfig, esclient, queries.address_search_using_ids, searchWithIdsShouldExecute),
       controllers.search(peliasConfig, esclient, queries.search, fallbackQueryShouldExecute),
       sanitizers.defer_to_pelias_parser(peliasConfig.api, shouldDeferToPeliasParser), //run additional sanitizers needed for pelias parser
+      middleware.normalizeGermanStreets(),
       controllers.search(peliasConfig, esclient, queries.search_pelias_parser, searchPeliasParserShouldExecute),
       middleware.trimByGranularity(),
       middleware.distance('focus.point.'),
@@ -246,6 +248,7 @@ function addRoutes(app, peliasConfig) {
       middleware.requestLanguage,
       middleware.sizeCalculator(),
       controllers.structured_libpostal(structuredLibpostalService, structuredLibpostalShouldExecute),
+      middleware.normalizeGermanStreets(),
       controllers.search(peliasConfig, esclient, queries.structured_geocoding, not(hasResponseDataOrRequestErrors)),
       middleware.trimByGranularityStructured(),
       middleware.distance('focus.point.'),
