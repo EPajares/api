@@ -16,7 +16,6 @@ function setup(comparator, should_execute) {
 
     // capture the post-sort order
     const postsort_order = res.data.map(_.property('_id'));
-
     // log it for debugging purposes
     logger.debug([
       `req.clean: ${JSON.stringify(req.clean)}`,

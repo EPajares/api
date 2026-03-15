@@ -128,6 +128,21 @@ function generateQuery( clean, res ){
 
   vs.var( 'input:street', clean.parsed_text.street );
 
+  // Pass decompounded street variant if available (German compound word splitting)
+  if( ! _.isEmpty(clean.parsed_text.street_decompounded) ){
+    vs.var( 'input:street_decompounded', clean.parsed_text.street_decompounded );
+  }
+
+  // Pass concatenated street variant (hyphens removed) for reverse compound matching
+  if( ! _.isEmpty(clean.parsed_text.street_concatenated) ){
+    vs.var( 'input:street_concatenated', clean.parsed_text.street_concatenated );
+  }
+
+  // Pass prefix-stripped street variant (Am/An/Im removed)
+  if( ! _.isEmpty(clean.parsed_text.street_without_prefix) ){
+    vs.var( 'input:street_without_prefix', clean.parsed_text.street_without_prefix );
+  }
+
   // find the first granularity band for which there are results
   let granularity_band = granularity_bands.find(band => anyResultsAtGranularityBand(results, band));
 

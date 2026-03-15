@@ -20,6 +20,7 @@ predicates.hasRequestCategories = predicates.hasRequestParameter('categories');
 // shorthand for standard early-exit conditions
 const hasResponseDataOrRequestErrors = any(predicates.hasResponseData, predicates.hasRequestErrors);
 predicates.hasAdminOnlyResults = not(predicates.hasResultsAtLayers(['venue', 'address', 'street']));
+predicates.hasResponseResults = predicates.hasResponseData;
 
 const serviceWrapper = require('pelias-microservice-wrapper').service;
 const configuration = requireAll(path.join(__dirname, '../service/configurations'));
@@ -215,6 +216,7 @@ function addRoutes(app, peliasConfig) {
       sanitizers.search.middleware(peliasConfig.api),
       middleware.requestLanguage,
       middleware.sizeCalculator(),
+      middleware.normalizeGermanAddress(),
       controllers.libpostal(libpostalService, libpostalShouldExecute),
       middleware.normalizeGermanStreets(),
       controllers.placeholder(placeholderService, geometricFiltersApply, placeholderGeodisambiguationShouldExecute),
@@ -230,7 +232,7 @@ function addRoutes(app, peliasConfig) {
       middleware.confidenceScore(peliasConfig.api),
       middleware.confidenceScoreFallback(),
       middleware.interpolate(interpolationService, interpolationShouldExecute, interpolationConfiguration),
-      middleware.sortResponseData(sorting, predicates.hasAdminOnlyResults),
+      middleware.sortResponseData(sorting, predicates.hasResponseResults),
       middleware.applyOverrides(),
       middleware.dedupe(),
       middleware.accuracy(),

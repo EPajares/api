@@ -34,6 +34,21 @@ function addParsedVariablesToQueryVariables(clean, vs) {
     vs.var('input:street', clean.parsed_text.street);
   }
 
+  // decompounded street variant (German compound word splitting)
+  if (!_.isEmpty(clean.parsed_text.street_decompounded)) {
+    vs.var('input:street_decompounded', clean.parsed_text.street_decompounded);
+  }
+
+  // concatenated street variant (hyphens removed)
+  if (!_.isEmpty(clean.parsed_text.street_concatenated)) {
+    vs.var('input:street_concatenated', clean.parsed_text.street_concatenated);
+  }
+
+  // prefix-stripped street variant (Am/An/Im removed)
+  if (!_.isEmpty(clean.parsed_text.street_without_prefix)) {
+    vs.var('input:street_without_prefix', clean.parsed_text.street_without_prefix);
+  }
+
   // cross street name
   if (!_.isEmpty(clean.parsed_text.cross_street)) {
     vs.var('input:cross_street', clean.parsed_text.cross_street);
@@ -57,6 +72,13 @@ function addParsedVariablesToQueryVariables(clean, vs) {
         vs.var('input:' + key + '_a', clean.parsed_text.admin);
       }
     });
+  }
+
+  // When both venue name and locality are parsed, relax minimum_should_match
+  // so partial venue name matches from the correct locality can enter the result set.
+  // e.g. "Terminal 1" matching "Flughafen Terminal 1 West" when locality = Leinfelden-Echterdingen
+  if (!_.isEmpty(clean.parsed_text.venue) && !_.isEmpty(clean.parsed_text.locality)) {
+    vs.var('match:main:minimum_should_match', '1<-1 3<-50%');
   }
 }
 

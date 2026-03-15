@@ -8,15 +8,43 @@ module.exports = {
             {
               'bool': {
                 '_name': 'fallback.street',
-                'boost': 5,
                 'must': [
                   {
-                    'match_phrase': {
-                      'address_parts.street': {
-                        'query': 'street value',
-                        'analyzer': 'peliasQuery',
-                        'slop': 4
-                      }
+                    'bool': {
+                      'should': [
+                        {
+                          'match_phrase': {
+                            'address_parts.street': {
+                              'query': 'street value',
+                              'boost': 5,
+                              'slop': 4,
+                              'analyzer': 'peliasQuery'
+                            }
+                          }
+                        },
+                        {
+                          'match': {
+                            'address_parts.street': {
+                              'query': 'street value',
+                              'boost': 3,
+                              'operator': 'and',
+                              'analyzer': 'peliasStreet'
+                            }
+                          }
+                        },
+                        {
+                          'match': {
+                            'address_parts.street': {
+                              'query': 'street value',
+                              'boost': 1,
+                              'operator': 'and',
+                              'analyzer': 'peliasQuery',
+                              'fuzziness': 1
+                            }
+                          }
+                        }
+                      ],
+                      'minimum_should_match': 1
                     }
                   }
                 ],
@@ -25,7 +53,8 @@ module.exports = {
                   'term': {
                     'layer': 'street'
                   }
-                }
+                },
+                'boost': 5
               }
             }
           ],
@@ -77,9 +106,9 @@ module.exports = {
       'boost_mode': 'multiply'
     }
   },
-  'size': 10,
-  'track_scores': true,
   'sort': [
     '_score'
-  ]
+  ],
+  'size': 10,
+  'track_scores': true
 };

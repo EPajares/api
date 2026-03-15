@@ -29,6 +29,21 @@ function addParsedVariablesToQueryVariables( parsed_text, vs ){
     vs.var( 'input:street', parsed_text.street );
   }
 
+  // decompounded street variant (German compound word splitting)
+  if( ! _.isEmpty(parsed_text.street_decompounded) ){
+    vs.var( 'input:street_decompounded', parsed_text.street_decompounded );
+  }
+
+  // concatenated street variant (hyphens removed)
+  if( ! _.isEmpty(parsed_text.street_concatenated) ){
+    vs.var( 'input:street_concatenated', parsed_text.street_concatenated );
+  }
+
+  // prefix-stripped street variant (Am/An/Im removed)
+  if( ! _.isEmpty(parsed_text.street_without_prefix) ){
+    vs.var( 'input:street_without_prefix', parsed_text.street_without_prefix );
+  }
+
   // neighbourhood
   if ( ! _.isEmpty(parsed_text.neighbourhood) ) {
     vs.var( 'input:neighbourhood', parsed_text.neighbourhood);

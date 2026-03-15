@@ -81,9 +81,9 @@ module.exports = {
       ]
     }
   },
-  'size': 20,
-  'track_scores': true,
   'sort': [
     '_score'
-  ]
+  ],
+  'size': 20,
+  'track_scores': true
 };
