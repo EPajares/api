@@ -213,8 +213,33 @@ function normalizeCity(city, rawText) {
   return city;
 }
 
+// Abbreviations that libpostal may misplace into `query` instead of `street`.
+// When one of these appears in `query` and a `street` field exists, the
+// expanded form should be prepended to the street name.
+const QUERY_ABBREVIATIONS = [
+  { pattern: /^seb\.?$/i,     expansion: 'sebastian' },
+  { pattern: /^friedr\.?$/i,  expansion: 'friedrich' },
+  { pattern: /^dr\.?$/i,      expansion: 'doktor' },
+  { pattern: /^st\.?$/i,      expansion: 'sankt' },
+  { pattern: /^v\.?$/i,       expansion: 'von' },
+];
+
 function middleware() {
   return function (req, res, next) {
+    // When libpostal misplaces a name abbreviation into `query` while a
+    // `street` exists, merge the expanded abbreviation back into street.
+    const query = _.get(req, 'clean.parsed_text.query', '').trim();
+    const streetRaw = _.get(req, 'clean.parsed_text.street');
+    if (query && streetRaw) {
+      for (const abbr of QUERY_ABBREVIATIONS) {
+        if (abbr.pattern.test(query)) {
+          req.clean.parsed_text.street = abbr.expansion + '-' + streetRaw;
+          delete req.clean.parsed_text.query;
+          break;
+        }
+      }
+    }
+
     const street = _.get(req, 'clean.parsed_text.street');
     if (street) {
       const normalized = normalizeStreet(street);
