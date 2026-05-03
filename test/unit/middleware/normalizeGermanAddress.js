@@ -135,6 +135,28 @@ module.exports.tests.middleware_integration = function(test, common) {
   });
 };
 
+module.exports.tests.comma_house_numbers = function(test, common) {
+  var fn = normalizeGermanAddress.normalizeText;
+
+  test('strips comma-separated alternate house number', function(t) {
+    t.equal(fn('Heidolfstr. 9, 11, Bruchsal, 76646'),
+               'Heidolfstr. 9, Bruchsal, 76646');
+    t.end();
+  });
+
+  test('does not strip 5-digit PLZ that follows house number', function(t) {
+    t.equal(fn('Sautierstraße 1, 79104, Freiburg'),
+               'Sautierstraße 1, 79104, Freiburg');
+    t.end();
+  });
+
+  test('does not strip PLZ in Bahnhofstr form', function(t) {
+    t.equal(fn('Bahnhofstr. 1-3, 69190, Walldorf'),
+               'Bahnhofstr. 1, 69190, Walldorf');
+    t.end();
+  });
+};
+
 module.exports.all = function(tape, common) {
   function test(name, testFunction) {
     return tape('normalizeGermanAddress: ' + name, testFunction);

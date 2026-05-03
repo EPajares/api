@@ -68,7 +68,12 @@ function normalizeText(text) {
   // --- Comma-separated house numbers: "9, 11" → "9" ---
   // "Heidolfstr. 9, 11, Bruchsal" → "Heidolfstr. 9, Bruchsal"
   // Only match when digits appear on both sides of a comma (not "street, city").
-  result = result.replace(/(\d+)\s*,\s*(\d+)(?=\s*,)/g, '$1');
+  // Limit the second number to at most 4 digits so that 5-digit German postal
+  // codes (PLZ) are never misidentified as alternate house numbers.
+  // Negative lookbehind: do not fire when the leading digit is preceded by a
+  // single uppercase letter + space ("A 2, 5, Stuttgart") — those are block
+  // addresses where the second digit is the actual house number.
+  result = result.replace(/(?<![A-ZÄÖÜ] )(\d+)\s*,\s*(\d{1,4})(?=\s*,)/g, '$1');
 
   // --- "und" / "+" compound house numbers ---
   // "Hauptstr. 64 und 66" → "Hauptstr. 64"

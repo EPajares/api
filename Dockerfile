@@ -13,6 +13,10 @@ RUN npm install
 
 COPY . ${WORKDIR}
 
+# Apply local patches to npm-installed packages
+RUN cp ${WORKDIR}/patches/AddressesUsingIdsQuery.js \
+       ${WORKDIR}/node_modules/pelias-query/layout/AddressesUsingIdsQuery.js
+
 # only allow containers to succeed if tests pass
 RUN npm test
 

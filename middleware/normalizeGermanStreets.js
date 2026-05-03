@@ -271,6 +271,7 @@ function middleware() {
       if (stripped) {
         req.clean.parsed_text.street_without_prefix = stripped;
       }
+
     }
     // Restore parenthetical city names
     const city = _.get(req, 'clean.parsed_text.city');
