@@ -81,6 +81,14 @@ function normalizeText(text) {
   result = result.replace(/(\d+)\s+und\s+\d+/gi, '$1');
   result = result.replace(/(\d+)\s*\+\s*\d+/g, '$1');
 
+  // --- "Baden" as historical region qualifier ---
+  // Input data from older German systems appends ", Baden" (Grand Duchy of Baden)
+  // after city names, e.g. "Karlsruhe, Baden, 76133" or "Walldorf, Baden".
+  // This is a regional label, not the city "Baden" (Baden-Baden, PLZ 76530-76534).
+  // Strip it when preceded by a comma so we don't affect "Baden-Baden" or
+  // addresses where "Baden" is the only location token.
+  result = result.replace(/,\s*\bBaden\b(?!-)/g, '');
+
   // --- Abbreviation period without space before next word ---
   // "Seb.Merkle Str." → "Seb. Merkle Str."
   // Only insert space when a lowercase letter precedes the period (abbreviation like "Seb.")
